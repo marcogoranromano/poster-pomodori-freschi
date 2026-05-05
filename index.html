@@ -26,10 +26,23 @@
         width: auto;
         height: auto;
       }
+
+      /* Template (hidden) + clones (animated). */
+      #pomodoro,
+      .tomato {
+        transform-box: fill-box;
+        transform-origin: center;
+      }
+
+      #pomodoro {
+        visibility: hidden;
+        pointer-events: none;
+      }
     </style>
   </head>
   <body>
     <svg
+      id="poster"
       width="700"
       height="1000"
       viewBox="0 0 700 1000"
@@ -145,6 +158,105 @@
     </svg>
     <script type="module">
       import { animate } from "https://esm.sh/animejs";
+
+      const svg = document.querySelector("#poster");
+      const template = svg?.querySelector("#pomodoro");
+      if (!svg || !template) {
+        throw new Error("Missing #poster svg or #pomodoro template.");
+      }
+
+      const active = new Set();
+      const MAX_ACTIVE = 3;
+      const X_MIN = 80;
+      const X_MAX = 620;
+      const FLOOR_Y = 1000; // viewBox bottom
+
+      const rand = (min, max) => min + Math.random() * (max - min);
+
+      function spawnTomato() {
+        if (active.size >= MAX_ACTIVE) return;
+
+        // Clone template (keep defs/clipPath usage intact).
+        const node = template.cloneNode(true);
+        node.removeAttribute("id");
+        node.classList.add("tomato");
+        node.style.visibility = "visible";
+
+        // Insert above template so template stays hidden & stable.
+        template.parentNode.insertBefore(node, template);
+
+        // Measure geometry in SVG coords.
+        const bbox = node.getBBox();
+        const cx = bbox.x + bbox.width / 2;
+        const bottom = bbox.y + bbox.height;
+
+        const x = rand(X_MIN, X_MAX);
+
+        const impactTy = FLOOR_Y - bottom;
+        const startTy = -bottom - 40;
+        const tx = x - cx;
+
+        // Initial placement.
+        node.style.transform = `translate(${tx}px, ${startTy}px) rotate(0deg)`;
+
+        active.add(node);
+
+        const bounceHeights = [220, 140, 80]; // 3 bounces
+        const keyframes = [];
+
+        // Fall to impact.
+        keyframes.push({
+          translateX: tx,
+          translateY: impactTy,
+          rotate: rand(-6, 6),
+          duration: 900,
+          ease: "inQuad",
+        });
+
+        // Bounces (up then back to impact), with wobble.
+        for (let i = 0; i < bounceHeights.length; i++) {
+          const h = bounceHeights[i];
+          const wobble = i === 0 ? 16 : i === 1 ? 12 : 9;
+
+          keyframes.push({
+            translateX: tx,
+            translateY: impactTy - h,
+            rotate: wobble,
+            duration: 240,
+            ease: "outQuad",
+          });
+          keyframes.push({
+            translateX: tx,
+            translateY: impactTy,
+            rotate: -wobble,
+            duration: 220,
+            ease: "inQuad",
+          });
+        }
+
+        // Final "jump" out upward (exit viewBox).
+        keyframes.push({
+          translateX: tx + rand(-60, 60),
+          translateY: -bottom - 320,
+          rotate: rand(-35, 35),
+          duration: 520,
+          ease: "inQuad",
+        });
+
+        animate(node, {
+          keyframes,
+          onComplete: () => {
+            active.delete(node);
+            node.remove();
+          },
+        });
+      }
+
+      svg.addEventListener("pointerdown", (e) => {
+        // Only react to primary button (mouse) but allow touch.
+        if (e.pointerType === "mouse" && e.button !== 0) return;
+        spawnTomato();
+      });
     </script>
   </body>
 </html>
