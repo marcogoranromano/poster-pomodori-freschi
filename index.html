@@ -4,12 +4,36 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Document</title>
+    <style>
+      html,
+      body {
+        height: 100%;
+      }
+
+      body {
+        margin: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #ff3300;
+      }
+
+      body > svg {
+        display: block;
+        --safe-margin: 16px;
+        max-width: calc(100vw - (2 * var(--safe-margin)));
+        max-height: calc(100vh - (2 * var(--safe-margin)));
+        width: auto;
+        height: auto;
+      }
+    </style>
   </head>
   <body>
     <svg
       width="700"
       height="1000"
       viewBox="0 0 700 1000"
+      preserveAspectRatio="xMidYMid meet"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
     >
